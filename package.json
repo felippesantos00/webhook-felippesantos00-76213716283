@@ -1,0 +1,12 @@
+{
+  "name": "webhook-vercel",
+  "version": "1.0.0",
+  "main": "api/webhook.js",
+  "scripts": {
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+
