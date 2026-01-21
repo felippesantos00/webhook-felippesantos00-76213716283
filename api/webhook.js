@@ -1,10 +1,9 @@
 const express = require("express");
-const serverless = require("serverless-http");
-
+const serverless = require("serverless-http"); // necessário para Vercel
 const app = express();
 app.use(express.json());
 
-const verifyToken = process.env.VERIFY_TOKEN;
+const verifyToken = process.env.VERIFY_TOKEN || "teste123"; // fallback local
 
 // GET para verificação
 app.get("/", (req, res) => {
@@ -29,5 +28,6 @@ app.post("/", (req, res) => {
   res.status(200).end();
 });
 
-// Exporta como função serverless
+// **Não use app.listen()**
+// Exporta a função para Vercel
 module.exports = serverless(app);
