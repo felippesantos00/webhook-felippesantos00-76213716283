@@ -1,12 +1,12 @@
 const express = require("express");
-const serverless = require("serverless-http"); // <--- IMPORTAR serverless-http
+const serverless = require("serverless-http");
 
 const app = express();
 app.use(express.json());
 
 const verifyToken = process.env.VERIFY_TOKEN;
 
-// GET para verificação do webhook
+// GET para verificação
 app.get("/", (req, res) => {
   const {
     "hub.mode": mode,
@@ -16,10 +16,9 @@ app.get("/", (req, res) => {
 
   if (mode === "subscribe" && token === verifyToken) {
     console.log("WEBHOOK VERIFIED");
-    res.status(200).send(challenge);
-  } else {
-    res.status(403).end();
+    return res.status(200).send(challenge);
   }
+  return res.status(403).end();
 });
 
 // POST para receber eventos
@@ -30,5 +29,5 @@ app.post("/", (req, res) => {
   res.status(200).end();
 });
 
-// EXPORTA a função serverless para Vercel
+// Exporta como função serverless
 module.exports = serverless(app);
