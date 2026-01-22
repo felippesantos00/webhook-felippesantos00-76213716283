@@ -1,44 +1,30 @@
-import os
-from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
 import json
-from datetime import datetime
-
+import os
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "teste123")
 
 
-class handler(BaseHTTPRequestHandler):
-
-    def do_GET(self):
-        query = parse_qs(urlparse(self.path).query)
-
-        mode = query.get("hub.mode", [None])[0]
-        challenge = query.get("hub.challenge", [None])[0]
-        token = query.get("hub.verify_token", [None])[0]
+def handler(request):
+    # GET → verificação
+    if request.method == "GET":
+        mode = request.args.get("hub.mode")
+        challenge = request.args.get("hub.challenge")
+        token = request.args.get("hub.verify_token")
 
         if mode == "subscribe" and token == VERIFY_TOKEN:
-            print("WEBHOOK VERIFIED")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(challenge.encode())
-        else:
-            self.send_response(403)
-            self.end_headers()
+            return challenge, 200
 
-    def do_POST(self):
-        content_length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(content_length)
+        return "Forbidden", 403
 
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"\nWebhook received {timestamp}\n")
-
+    # POST → eventos
+    if request.method == "POST":
         try:
-            data = json.loads(body)
-            print(json.dumps(data, indent=2))
-        except Exception:
-            print(body.decode())
+            payload = request.get_json()
+            print("Webhook recebido:")
+            print(json.dumps(payload, indent=2))
+        except Exception as e:
+            print("Erro ao ler payload:", e)
 
-        self.send_response(200)
-        self.end_headers()
+        return "OK", 200
+
+    return "Method Not Allowed", 405
