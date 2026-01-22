@@ -1,28 +1,44 @@
 import os
-from flask import Flask, request, jsonify
-from dotenv import load_dotenv
+from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+import json
+from datetime import datetime
 
-load_dotenv()  # lê .env.local
 
-app = Flask(__name__)
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "teste123")
 
-# GET para verificação do webhook
-@app.route("/api/webhook", methods=["GET"])
-def verify():
-    mode = request.args.get("hub.mode")
-    token = request.args.get("hub.verify_token")
-    challenge = request.args.get("hub.challenge")
 
-    if mode == "subscribe" and token == VERIFY_TOKEN:
-        print("WEBHOOK VERIFIED")
-        return challenge, 200
-    return "Forbidden", 403
+class handler(BaseHTTPRequestHandler):
 
-# POST para receber eventos
-@app.route("/api/webhook", methods=["POST"])
-def webhook():
-    data = request.get_json()
-    print("Webhook received:")
-    print(data)
-    return "OK", 200
+    def do_GET(self):
+        query = parse_qs(urlparse(self.path).query)
+
+        mode = query.get("hub.mode", [None])[0]
+        challenge = query.get("hub.challenge", [None])[0]
+        token = query.get("hub.verify_token", [None])[0]
+
+        if mode == "subscribe" and token == VERIFY_TOKEN:
+            print("WEBHOOK VERIFIED")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(challenge.encode())
+        else:
+            self.send_response(403)
+            self.end_headers()
+
+    def do_POST(self):
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length)
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"\nWebhook received {timestamp}\n")
+
+        try:
+            data = json.loads(body)
+            print(json.dumps(data, indent=2))
+        except Exception:
+            print(body.decode())
+
+        self.send_response(200)
+        self.end_headers()
